@@ -5,3 +5,9 @@ edition = "2024"
 
 [dependencies]
 regex = "1.11.1"
+clap = {version = "^4.5.36", features=["derive", "cargo", "color", "help"]}
+
+
+[profile.release]
+lto = true
+strip = true
