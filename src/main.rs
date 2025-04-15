@@ -82,6 +82,16 @@ fn main() {
 
     let mut entries = Vec::new();
 
+    let case_fn = if opts.case_sensitive {
+        str::to_owned
+    } else {
+        str::to_lowercase
+    };
+
+    // regex for where bibentries start
+    let entry_start = r"@.*\{";
+    let re = regex::Regex::new(entry_start).unwrap();
+
     while let Some(line) = line_iter_helper.next() {
         let no_leading_whitespace = line.trim_start();
         if no_leading_whitespace.is_empty(){
@@ -91,21 +101,13 @@ fn main() {
             panic!("Missmatched brackets? Encountered line outside bib items that does not start with @, i.e., that does not start a new bib item. Line was {line}");
         }
 
-        let entry_start = r"@.*\{";
-        let re = regex::Regex::new(entry_start).unwrap();
-
         let id = match re.find(no_leading_whitespace)
         {
             Some(m) => {
                 let trimmed = no_leading_whitespace[m.end()..]
                     .trim_start();
-                
-                if opts.case_sensitive{
-                    trimmed.to_owned()
-                } else {
-                    trimmed.to_lowercase()
-                }
-                
+
+                case_fn(trimmed)
             },
             None => {
                 panic!("Line without whitespaces starts with @ - but cannot parse - Missing {{?");
