@@ -24,6 +24,12 @@ use clap::Parser;
 /// 
 /// Here the key is boers2019
 /// 
+/// Note: If you want to overwrite the bibfile: Do NOT pipe into it. 
+/// Commands like bib_sort literature.bib > literature.bib will DELETE the literature.bib file 
+/// before the program reads it, which means it is essentially just creating an empty file.
+/// 
+/// INSTEAD: You can safely use bib_sort literature.bib -o literature.bib as this will first parse
+/// the bibfile and then overwrite it with the sorted file only if no errors were detected.
 #[derive(Parser)]
 pub struct Opts{
     /// Path to the current bib file

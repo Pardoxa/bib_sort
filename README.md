@@ -30,11 +30,51 @@ It will print the sorted files to the terminal
 ## Compiling
 
 If you do not have Rust (and cargo) installed, install it [https://doc.rust-lang.org/book/ch01-01-installation.html].
-Then clone this repository. Go into the folder.
+Then clone this repository. Open a terminal in the folder of this README.md
+
+### Option 1)
 Compile via:
 ```bash
 cargo b -r
 ```
-
 The executable "bib_sort" is now in the folder ./target/release
+You need to add the executable to your PATH to be able to call it as bib_sort from anywhere.
 
+### Option 2)
+You can also run
+```bash
+cargo install --path .
+```
+when inside the folder of this README.md 
+This will add the executable to .cargo/bin which is 
+added to your PATH during the installation of Rust, 
+at least with default settings, so you can skip the PATH adding 
+step and still call bib_sort from anywhere
+
+# Usage
+
+Bibfiles are expected to be encoded in UTF8. ASCII is also fine.
+Other encodings may lead to errors.
+
+Sorting bibfiles:
+```bash
+bib_sort path.bib
+```
+will print the sorted file in the terminal
+
+```bash
+bib_sort path.bib -o out.bib
+```
+will write the sorted bibfile to the file out.bib
+
+```bash
+bib_sort --help
+```
+for help Info
+
+Note: If you want to overwrite the bibfile: Do **NOT** pipe into it. 
+Commands like "bib_sort literature.bib > literature.bib" will **DELETE** the literature.bib file 
+before the program reads it, which means it is essentially just creating an empty file.
+
+**INSTEAD**: You can safely use "bib_sort literature.bib -o literature.bib" as this will first parse
+the bibfile and then overwrite it with the sorted file only if no errors were detected.
