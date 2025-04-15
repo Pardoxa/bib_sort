@@ -1,4 +1,8 @@
-use std::{fs::File, io::{BufRead, BufReader}, path::PathBuf};
+use std::{
+    fs::File, 
+    io::{stdout, BufRead, BufReader, BufWriter, Write}, 
+    path::PathBuf
+};
 use clap::Parser;
 
 /// Created by Yannick Feld
@@ -26,7 +30,11 @@ pub struct Opts{
 
     #[arg(long, short)]
     /// Make sorting case sensitive
-    case_sensitive: bool
+    case_sensitive: bool,
+
+    #[arg(long, short)]
+    /// If this option is used, the output will be written to the specified file instead of printed to stdout
+    out: Option<PathBuf>
 }
 
 pub struct LineIterHelper<I>{
@@ -70,9 +78,8 @@ fn main() {
         .lines()
         .map(|entry| entry.expect("Error reading line - your bibfile needs to be encoded with UTF8"));
     let mut line_iter_helper = LineIterHelper::new(lines);
-    
 
-    let mut entrys = Vec::new();
+    let mut entries = Vec::new();
 
     while let Some(line) = line_iter_helper.next() {
         let no_leading_whitespace = line.trim_start();
@@ -128,14 +135,35 @@ fn main() {
             content
         };
 
-        entrys.push(bib_entry);
+        entries.push(bib_entry);
     }
-    entrys.sort_by_cached_key(|entry| entry.id.clone());
+    entries.sort_by_cached_key(|entry| entry.id.clone());
     
+    match opts.out{
+        None => {
+            let out = stdout();
+            write_entries(entries, out);
+        },
+        Some(out_path) => {
+            let out_file = File::create(out_path)
+                .expect("Unable to create file");
+            let out = BufWriter::new(out_file);
+            write_entries(entries, out);
+        } 
+    }
 
-    for entry in entrys{
-        println!("{}", entry.content);
-        println!();
+
+}
+
+pub fn write_entries<W: Write>(entries: Vec<BibEntry>, mut out: W){
+    for entry in entries{
+        let io_result = writeln!(out, "{}\n", entry.content);
+        if let Err(e) = io_result{
+            // ignore broken pipes
+            if !matches!(e.kind(), std::io::ErrorKind::BrokenPipe) {
+                panic!("{e}");
+            }
+        }
     }
 }
 
