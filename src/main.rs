@@ -121,7 +121,7 @@ fn main() {
         };
 
         let mut bracket_counter = BracketCounter::default();
-        let mut content = bracket_counter.count_brackets_return_leftover(
+        let mut content = bracket_counter.count_brackets_return_content(
             no_leading_whitespace,
             &mut line_iter_helper
         );
@@ -133,7 +133,7 @@ fn main() {
             
             content.push('\n');
             content.push_str(
-                &bracket_counter.count_brackets_return_leftover(
+                &bracket_counter.count_brackets_return_content(
                     &next_line,
                     &mut line_iter_helper
                 )
@@ -202,7 +202,7 @@ impl BracketCounter{
         self.open == self.close
     }
 
-    fn count_brackets_return_leftover<I>(
+    fn count_brackets_return_content<I>(
         &mut self, 
         s: &str, 
         line_iter_helper: &mut LineIterHelper<I>
@@ -224,6 +224,8 @@ impl BracketCounter{
                             line_iter_helper.leftover = Some(leftover);
                         }
                         return content;
+                    } else if self.close > self.open {
+                        panic!("Bracket was closed before it was opened! Mismatched bracket error in: {s}");
                     }
 
                 },
