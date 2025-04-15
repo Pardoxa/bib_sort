@@ -26,3 +26,15 @@ and the bib item should be sorted according to the key (here boers2019 and baxte
 The sorting is case insensitive.
 
 It will print the sorted files to the terminal
+
+## Compiling
+
+If you do not have Rust (and cargo) installed, install it [https://doc.rust-lang.org/book/ch01-01-installation.html].
+Then clone this repository. Go into the folder.
+Compile via:
+```bash
+cargo b -r
+´´´
+
+The executable "bib_sort" is now in the folder ./target/release
+
