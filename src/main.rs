@@ -100,7 +100,7 @@ fn main() {
                 
             },
             None => {
-                panic!("Line without whitespaces starts with @ - but cannot parse - error");
+                panic!("Line without whitespaces starts with @ - but cannot parse - Missing {{?");
             }
         };
 
