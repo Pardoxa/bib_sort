@@ -20,7 +20,7 @@ The idea is: You have bib files containing items like
   address =   {London},
   year =      {1982},
 }
-´´´
+```
 
 and the bib item should be sorted according to the key (here boers2019 and baxter1982).
 The sorting is case insensitive.
@@ -34,7 +34,7 @@ Then clone this repository. Go into the folder.
 Compile via:
 ```bash
 cargo b -r
-´´´
+```
 
 The executable "bib_sort" is now in the folder ./target/release
 
