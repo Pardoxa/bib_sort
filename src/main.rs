@@ -71,7 +71,7 @@ fn main() {
 
     let opts = Opts::parse();
 
-    let reader = File::open(opts.bib_path.as_path())
+    let reader = File::open(opts.bib_path)
         .expect("Cannot open bibfile");
     let buf_reader = BufReader::new(reader);
 
@@ -141,6 +141,11 @@ fn main() {
         entries.push(bib_entry);
     }
     entries.sort_by_cached_key(|entry| entry.id.clone());
+    // Dropping line_iter_helper such that 
+    // the file handle of the reader is dropped as well,
+    // so there is no issue writing to the same file 
+    // if the user wants to
+    drop(line_iter_helper);
     
     match opts.out{
         None => {
