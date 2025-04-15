@@ -23,7 +23,7 @@ The idea is: You have bib files containing items like
 ```
 
 and the bib item should be sorted according to the key (here boers2019 and baxter1982).
-The sorting is case insensitive.
+By default the sorting is case insensitive.
 
 It will print the sorted files to the terminal
 

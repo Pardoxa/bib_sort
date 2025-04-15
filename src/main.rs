@@ -22,7 +22,11 @@ use clap::Parser;
 #[derive(Parser)]
 pub struct Opts{
     /// Path to the current bib file
-    bib_path: PathBuf
+    bib_path: PathBuf,
+
+    #[arg(long, short)]
+    /// Make sorting case sensitive
+    case_sensitive: bool
 }
 
 pub struct LineIterHelper<I>{
@@ -85,7 +89,15 @@ fn main() {
         let id = match re.find(no_leading_whitespace)
         {
             Some(m) => {
-                no_leading_whitespace[m.end()..].trim_start().to_lowercase()
+                let trimmed = no_leading_whitespace[m.end()..]
+                    .trim_start();
+                
+                if opts.case_sensitive{
+                    trimmed.to_owned()
+                } else {
+                    trimmed.to_lowercase()
+                }
+                
             },
             None => {
                 panic!("Line without whitespaces starts with @ - but cannot parse - error");
