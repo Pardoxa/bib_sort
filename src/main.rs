@@ -19,14 +19,38 @@ use clap::Parser;
 /// 
 /// Here the key is boers2019
 /// 
-/// Note: A bib item is NOT allowed to start on the same line where another bib item ended, meaning there needs to be 
-/// at least one newline character at the end of each bib item (except the last one).
-/// Otherwise the output may be garbage
-/// 
 #[derive(Parser)]
 pub struct Opts{
     /// Path to the current bib file
     bib_path: PathBuf
+}
+
+pub struct LineIterHelper<I>{
+    pub line_iter: I,
+    pub leftover: Option<String>
+}
+
+impl<I> Iterator for LineIterHelper<I>
+where I: Iterator<Item=String>
+{
+    type Item = String;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.leftover
+            .take()
+            .or_else(|| self.line_iter.next())
+    }
+}
+
+impl<I> LineIterHelper<I>
+    where I: Iterator<Item = String>
+{
+    pub fn new(line_iter: I) -> Self
+    {
+        Self {
+            leftover: None,
+            line_iter
+        }
+    }
 }
 
 
@@ -38,16 +62,21 @@ fn main() {
         .expect("Cannot open bibfile");
     let buf_reader = BufReader::new(reader);
 
-    let mut lines = buf_reader
+    let lines = buf_reader
         .lines()
         .map(|entry| entry.expect("Error reading line - your bibfile needs to be encoded with UTF8"));
+    let mut line_iter_helper = LineIterHelper::new(lines);
+    
 
     let mut entrys = Vec::new();
 
-    while let Some(line) = lines.next() {
+    while let Some(line) = line_iter_helper.next() {
         let no_leading_whitespace = line.trim_start();
-        if !no_leading_whitespace.starts_with('@'){
+        if no_leading_whitespace.is_empty(){
             continue;
+        }
+        if !no_leading_whitespace.starts_with('@'){
+            panic!("Missmatched brackets? Encountered line outside bib items that does not start with @, i.e., that does not start a new bib item. Line was {line}");
         }
 
         let entry_start = r"@.*\{";
@@ -64,16 +93,23 @@ fn main() {
         };
 
         let mut bracket_counter = BracketCounter::default();
-        bracket_counter.count_brackets(no_leading_whitespace);
-
-        let mut content = line;
+        let mut content = bracket_counter.count_brackets_return_leftover(
+            no_leading_whitespace,
+            &mut line_iter_helper
+        );
+        
 
         while !bracket_counter.equal_brackets() {
-            let next_line = lines.next()
+            let next_line = line_iter_helper.next()
                 .expect("Unexpected end of file - did you forget to close a bracket?");
-            bracket_counter.count_brackets(&next_line);
+            
             content.push('\n');
-            content.push_str(&next_line);
+            content.push_str(
+                &bracket_counter.count_brackets_return_leftover(
+                    &next_line,
+                    &mut line_iter_helper
+                )
+            );
         }
         let bib_entry = BibEntry{
             id,
@@ -110,22 +146,34 @@ impl BracketCounter{
         self.open == self.close
     }
 
-    fn count_brackets(&mut self, s: &str)
+    fn count_brackets_return_leftover<I>(
+        &mut self, 
+        s: &str, 
+        line_iter_helper: &mut LineIterHelper<I>
+    ) -> String
     {
-        s.chars()
-            .for_each(
-                |c|
-                {
-                    match c {
-                        '{' => {
-                            self.open += 1;
-                        },
-                        '}' => {
-                            self.close += 1;
-                        },
-                        _ => ()
+        let mut char_iter = s.chars();
+        let mut content = String::new();
+        for c in &mut char_iter{
+            content.push(c);
+            match c {
+                '{' => {
+                    self.open += 1;
+                },
+                '}' => {
+                    self.close += 1;
+                    if self.equal_brackets() {
+                        let leftover: String = char_iter.collect();
+                        if !leftover.is_empty(){
+                            line_iter_helper.leftover = Some(leftover);
+                        }
+                        return content;
                     }
-                }
-            );
+
+                },
+                _ => ()
+            }
+        }
+        content
     }
 }
