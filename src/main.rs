@@ -160,7 +160,7 @@ pub fn write_entries<W: Write>(entries: Vec<BibEntry>, mut out: W){
         let io_result = writeln!(out, "{}\n", entry.content);
         if let Err(e) = io_result{
             // ignore broken pipes
-            if !matches!(e.kind(), std::io::ErrorKind::BrokenPipe) {
+            if e.kind() != std::io::ErrorKind::BrokenPipe {
                 panic!("{e}");
             }
         }
