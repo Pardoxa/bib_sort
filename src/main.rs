@@ -41,7 +41,20 @@ pub struct Opts{
 
     #[arg(long, short)]
     /// If this option is used, the output will be written to the specified file instead of printed to stdout
-    out: Option<PathBuf>
+    out: Option<PathBuf>,
+
+    /// By default the program searches for duplicate keys and gives an error message upon detection.
+    /// This flag can be used to turn this off
+    #[arg(long, short)]
+    no_duplicate_detection: bool,
+
+    /// By default the program will not allow bib items that do not have a key,
+    /// as those items cannot be cited and are likely a mistake.
+    /// However, some people like to have empty items for @article, @book etc
+    /// in the beginning of the file. This option will allow empty keys.
+    /// Also: Empty keys will be excempt from the duplicate detection.
+    #[arg(long, short)]
+    allow_empty_keys: bool
 }
 
 pub struct LineIterHelper<I>{
@@ -97,6 +110,8 @@ fn main() {
     // regex for where bibentries start
     let entry_start = r"@.*\{";
     let re = regex::Regex::new(entry_start).unwrap();
+    let id_regex = regex::Regex::new(r"[^,\s]+")
+        .unwrap();
 
     while let Some(line) = line_iter_helper.next() {
         let no_leading_whitespace = line.trim_start();
@@ -110,10 +125,19 @@ fn main() {
         let id = match re.find(no_leading_whitespace)
         {
             Some(m) => {
-                let trimmed = no_leading_whitespace[m.end()..]
-                    .trim_start();
-
-                case_fn(trimmed)
+                let entry_line = &no_leading_whitespace[m.end()..];
+                match id_regex.find(entry_line) {
+                    None => {
+                        if opts.allow_empty_keys{
+                            "".to_owned()
+                        } else {
+                            panic!("Cannot find key in line: {line}")
+                        }
+                    },
+                    Some(id_match) => {
+                        case_fn(id_match.as_str())
+                    }
+                }
             },
             None => {
                 panic!("Line without whitespaces starts with @ - but cannot parse - Missing {{?");
@@ -146,12 +170,32 @@ fn main() {
 
         entries.push(bib_entry);
     }
-    entries.sort_by_cached_key(|entry| entry.id.clone());
     // Dropping line_iter_helper such that 
     // the file handle of the reader is dropped as well,
     // so there is no issue writing to the same file 
     // if the user wants to
     drop(line_iter_helper);
+
+
+    entries.sort_by_cached_key(|entry| entry.id.clone());
+    if !opts.no_duplicate_detection{
+        let mut detected_duplicates = false;
+        entries.windows(2)
+            .for_each(
+                |slice|
+                {
+                    // Either there are no empty keys, or they were explicitly allowed 
+                    // and in that case they are excempt from duplication detection
+                    if !slice[0].id.is_empty() && slice[0].id == slice[1].id {
+                        detected_duplicates = true;
+                        eprintln!("Duplicate key: {}", slice[0].id);
+                    }
+                }
+            );
+        if detected_duplicates {
+            panic!("Duplicates were detected! Abborted writing anything.")
+        }
+    }
     
     match opts.out{
         None => {
