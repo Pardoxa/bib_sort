@@ -112,6 +112,9 @@ fn main() {
     let re = regex::Regex::new(entry_start).unwrap();
     let id_regex = regex::Regex::new(r"[^,\s]+")
         .unwrap();
+    // for later use: Regex to match the doi
+    // 10\.[\)\(\.\w/-]+
+    // I still need to write a regex to find where to start matching 
 
     while let Some(line) = line_iter_helper.next() {
         let no_leading_whitespace = line.trim_start();
