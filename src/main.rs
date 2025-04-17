@@ -115,7 +115,7 @@ fn main() {
     // for later use: Regex to match the doi
     // r"10\.[\)\(\.\w/-]+"
     // Before that, to find a start for the match:
-    // r"(d|D)(o|O)(i|I)\s*=\s*"
+    // r"(?i)\bdoi\s*=\s*"
 
     while let Some(line) = line_iter_helper.next() {
         let no_leading_whitespace = line.trim_start();
