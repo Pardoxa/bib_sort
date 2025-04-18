@@ -1,4 +1,5 @@
 use std::{
+    collections::BTreeSet, 
     fs::File, 
     io::{stdout, BufRead, BufReader, BufWriter, Write}, 
     path::PathBuf, 
@@ -52,9 +53,19 @@ pub struct Opts{
     /// as those items cannot be cited and are likely a mistake.
     /// However, some people like to have empty items for @article, @book etc
     /// in the beginning of the file. This option will allow empty keys.
-    /// Also: Empty keys will be excempt from the duplicate detection.
-    #[arg(long, short)]
-    allow_empty_keys: bool
+    /// Also: Empty keys will be exempt from the duplicate detection.
+    #[arg(long)]
+    allow_empty_keys: bool,
+
+    /// Additionally use the doi of the bib items to search for duplicates
+    #[arg(long)]
+    allow_doi_duplicates: bool,
+
+    /// For the doi items: This option ignores items with empty doi like "doi = {},"
+    /// Note: Items without "doi = " (arbitrary amount of spaces) are always
+    /// ignored for doi duplicate detection
+    #[arg(long)]
+    allow_empty_doi: bool
 }
 
 pub struct LineIterHelper<I>{
@@ -189,15 +200,73 @@ fn main() {
                 |slice|
                 {
                     // Either there are no empty keys, or they were explicitly allowed 
-                    // and in that case they are excempt from duplication detection
+                    // and in that case they are exempt from duplication detection
                     if !slice[0].id.is_empty() && slice[0].id == slice[1].id {
                         detected_duplicates = true;
                         eprintln!("Duplicate key: {}", slice[0].id);
                     }
                 }
             );
+
+        if !opts.allow_doi_duplicates {
+            let mut doi_set = BTreeSet::new();
+
+            let doi_position_regex = regex::Regex::new(r"(?i)\bdoi\s*=\s*")
+                .unwrap();
+            let doi_regex = regex::Regex::new(r"10\.[\)\(\.\w/\-:]+")
+                .unwrap();
+
+            for BibEntry { content, id } in entries.iter()
+            {
+                // ignore items with empty id
+                if id.is_empty() {
+                    continue;
+                }
+
+                // check if it contains something like "doi = " (case insensitive)
+                if let Some(doi_pos_match) = doi_position_regex.find(content)
+                {
+                    let mut str_containing_doi_next = &content[doi_pos_match.end()..];
+                    // doi comes before "," if there is any ","
+                    // - If there is no Doi given in the doi field, this makes sure the regex does not try 
+                    // to find the Doi in other parts of the bibitem
+                    if let Some((doi_part, ..)) = str_containing_doi_next.split_once(',')
+                    {
+                        str_containing_doi_next = doi_part;
+                    }
+
+                    match doi_regex.find(str_containing_doi_next)
+                    {
+                        None => {
+                            if opts.allow_empty_doi {
+                                continue;
+                            }
+                            panic!(
+                                "Error - cannot parse DOI in item with key {id}, even though it contains\n'{}'\nFull content of item is\n{content}", 
+                                doi_pos_match.as_str()
+                            );
+                        },
+                        Some(doi) => {
+                            let item_was_not_previously_inserted = doi_set.insert(doi.as_str());
+                            if !item_was_not_previously_inserted {
+                                detected_duplicates = true;
+                                eprintln!("Duplicate DOI: {}", doi.as_str());
+                            }
+                        }
+                    }
+
+                }
+            }
+        }
+        
         if detected_duplicates {
-            panic!("Duplicates were detected! Abborted writing anything.")
+            panic!(
+                "The program detected that your file contains either at least one duplicate key or at least one duplicate doi (see previous error messages)!\n\
+                 Please have a look at your file and fix this error before trying again \
+                 or have a look at the options starting with --allow\n\
+                 You can find all options by using --help\n\
+                 Aborted writing anything."
+            )
         }
     }
     
