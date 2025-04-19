@@ -7,6 +7,8 @@ use std::{
 };
 use clap::Parser;
 
+mod sort_by_author;
+
 /// Created by Yannick Feld
 /// 
 /// The program is intended to sort bibfiles by the key.
@@ -46,7 +48,7 @@ pub struct Opts{
 
     /// By default the program searches for duplicate keys and gives an error message upon detection.
     /// This flag can be used to turn this off
-    #[arg(long, short)]
+    #[arg(long, short, alias="ndd")]
     no_duplicate_detection: bool,
 
     /// By default the program will not allow bib items that do not have a key,
@@ -54,18 +56,22 @@ pub struct Opts{
     /// However, some people like to have empty items for @article, @book etc
     /// in the beginning of the file. This option will allow empty keys.
     /// Also: Empty keys will be exempt from the duplicate detection.
-    #[arg(long)]
+    #[arg(long, alias="aek")]
     allow_empty_keys: bool,
 
     /// Additionally use the doi of the bib items to search for duplicates
-    #[arg(long)]
+    #[arg(long, alias="add")]
     allow_doi_duplicates: bool,
 
     /// For the doi items: This option ignores items with empty doi like "doi = {},"
     /// Note: Items without "doi = " (arbitrary amount of spaces) are always
     /// ignored for doi duplicate detection
-    #[arg(long)]
-    allow_empty_doi: bool
+    #[arg(long, alias="aed")]
+    allow_empty_doi: bool,
+
+    /// Sort by author name instead
+    #[arg(long, alias="sba")]
+    sort_by_author: bool
 }
 
 pub struct LineIterHelper<I>{
@@ -123,10 +129,6 @@ fn main() {
     let re = regex::Regex::new(entry_start).unwrap();
     let id_regex = regex::Regex::new(r"[^,\s]+")
         .unwrap();
-    // for later use: Regex to match the doi
-    // r"10\.[\)\(\.\w/-]+"
-    // Before that, to find a start for the match:
-    // r"(?i)\bdoi\s*=\s*"
 
     while let Some(line) = line_iter_helper.next() {
         let no_leading_whitespace = line.trim_start();
@@ -268,6 +270,10 @@ fn main() {
                  Aborted writing anything."
             )
         }
+    }
+
+    if opts.sort_by_author{
+        sort_by_author::sort_by_author(&mut entries);
     }
     
     match opts.out{
