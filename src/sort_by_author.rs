@@ -86,6 +86,17 @@ pub fn field_content(mut field: &str) -> &str
             continue;
         }
 
+        let mut set_field = || {
+            field = match iter.next(){
+                Some((idx, _)) => {
+                    &field[start..idx]
+                },
+                None => {
+                    &field[start..]
+                }
+            };
+        };
+
         match &mut bracket_or_quote {
             BracketOrQuote::None => {
                 start = index;
@@ -109,40 +120,19 @@ pub fn field_content(mut field: &str) -> &str
                     _ => continue
                 }
                 if *num == 0 {
-                    field = match iter.next(){
-                        Some((idx, _)) => {
-                            &field[start..idx]
-                        },
-                        None => {
-                            &field[start..]
-                        }
-                    };
+                    set_field();
                     break;
                 }
             },
             BracketOrQuote::SingleQuote => {
                 if char == '\'' {
-                    field = match iter.next(){
-                        Some((idx, _)) => {
-                            &field[start..idx]
-                        },
-                        None => {
-                            &field[start..]
-                        }
-                    };
+                    set_field();
                     break;
                 }
             },
             BracketOrQuote::DoubleQuote => {
                 if char == '"' {
-                    field = match iter.next(){
-                        Some((idx, _)) => {
-                            &field[start..idx]
-                        },
-                        None => {
-                            &field[start..]
-                        }
-                    };
+                    set_field();
                     break;
                 }
             }
