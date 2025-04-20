@@ -76,8 +76,16 @@ pub struct Opts{
     /// the first author and uses that to sort. This sorting depends on the ordering of 
     /// first and last name in the bib entry
     /// [alias: --sba]
-    #[arg(long, alias="sbfaf")]
-    sort_by_first_author_field: bool
+    #[arg(long, alias="sbfaf", conflicts_with = "sort_by_first_author_first_name")]
+    sort_by_first_author_field: bool,
+
+    /// Parses the "author = " part, truncates it such that it only contains 
+    /// the first author. Then it tries to put the first name of the 
+    /// author in front of the last name, if the order was reversed.
+    /// This is then used for sorting.
+    /// [alias: --sbfafn]
+    #[arg(long, alias="sbfafn")]
+    sort_by_first_author_first_name: bool
 }
 
 pub struct LineIterHelper<I>{
@@ -283,7 +291,7 @@ fn main() {
             |string| string
         } else {
             |string: String| {
-                string.as_str().to_lowercase()
+                string.to_lowercase()
             }
         };
 
