@@ -47,7 +47,7 @@ pub struct Opts{
     out: Option<PathBuf>,
 
     /// By default the program searches for duplicate keys and gives an error message upon detection.
-    /// This flag can be used to turn this off
+    /// This flag can be used to turn this off. [alias: --ndd]
     #[arg(long, short, alias="ndd")]
     no_duplicate_detection: bool,
 
@@ -56,22 +56,28 @@ pub struct Opts{
     /// However, some people like to have empty items for @article, @book etc
     /// in the beginning of the file. This option will allow empty keys.
     /// Also: Empty keys will be exempt from the duplicate detection.
+    /// [alias: --aek]
     #[arg(long, alias="aek")]
     allow_empty_keys: bool,
 
-    /// Additionally use the doi of the bib items to search for duplicates
+    /// Additionally use the doi of the bib items to search for duplicates.
+    /// [alias: --add]
     #[arg(long, alias="add")]
     allow_doi_duplicates: bool,
 
     /// For the doi items: This option ignores items with empty doi like "doi = {},"
     /// Note: Items without "doi = " (arbitrary amount of spaces) are always
-    /// ignored for doi duplicate detection
+    /// ignored for doi duplicate detection.
+    /// [alias: --aed]
     #[arg(long, alias="aed")]
     allow_empty_doi: bool,
 
-    /// Sort by author name instead
-    #[arg(long, alias="sba")]
-    sort_by_author: bool
+    /// Parses the "author = " part, truncates it such that it only contains 
+    /// the first author and uses that to sort. This sorting depends on the ordering of 
+    /// first and last name in the bib entry
+    /// [alias: --sba]
+    #[arg(long, alias="sbfaf")]
+    sort_by_first_author_field: bool
 }
 
 pub struct LineIterHelper<I>{
@@ -272,8 +278,19 @@ fn main() {
         }
     }
 
-    if opts.sort_by_author{
-        sort_by_author::sort_by_author(&mut entries);
+    if opts.sort_by_first_author_field{
+        let case_fn = if opts.case_sensitive {
+            |string| string
+        } else {
+            |string: String| {
+                string.as_str().to_lowercase()
+            }
+        };
+
+        sort_by_author::sort_by_first_author_field(
+            &mut entries,
+            case_fn
+        );
     }
     
     match opts.out{
