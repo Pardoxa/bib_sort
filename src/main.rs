@@ -287,16 +287,19 @@ fn main() {
     }
 
     if opts.sort_by_first_author_field{
-        let case_fn = if opts.case_sensitive {
-            |string| string
-        } else {
-            |string: String| {
-                string.to_lowercase()
-            }
-        };
+        let case_fn = get_string_case_fn(opts.case_sensitive);
 
         sort_by_author::sort_by_first_author_field(
             &mut entries,
+            case_fn
+        );
+    }
+
+    if opts.sort_by_first_author_first_name {
+        let case_fn = get_string_case_fn(opts.case_sensitive);
+
+        sort_by_author::sort_by_first_author_first_name(
+            &mut entries, 
             case_fn
         );
     }
@@ -381,5 +384,17 @@ impl BracketCounter{
             }
         }
         content
+    }
+}
+
+
+pub fn get_string_case_fn(case_sensitive: bool) -> impl Fn(String) -> String
+{
+    if case_sensitive {
+        |string| string
+    } else {
+        |string: String| {
+            string.to_lowercase()
+        }
     }
 }
